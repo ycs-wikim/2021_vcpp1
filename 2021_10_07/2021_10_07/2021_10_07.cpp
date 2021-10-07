@@ -130,6 +130,7 @@ int g_flag;       /// 마우스가 클릭 되었는지 확인
 int g_x, g_y;   /// 이전 좌표 보관
 
 #if EX_03
+int g_color;            // 1: 빨강, 2: 파랑, 3: 녹색
 int g_draw_type;        // 그리기 종류를 보관
                         // 0이면 아무것도 하지 않는다.
                         // 1이면 선, 2면 사각형, 3이면 타원
@@ -163,6 +164,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 이제부터 그리기 처리는 타원으로 한다.
                 g_draw_type = 3;
                 break;
+
+            case ID_126:    // 빨간색
+                g_color = 1;
+                break;
+
+            case ID_127:    // 파란색
+                g_color = 2;
+                break;
+
+            case ID_128:    // 녹색
+                g_color = 3;
+                break;
 #endif
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -188,11 +201,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         int x, y;
         HDC hdc;
+        HPEN newPen, osPen;
 
         x = LOWORD(lParam);
         y = HIWORD(lParam);
 
         hdc = GetDC(hWnd);
+
+        /// 선 색상 변경
+        switch (g_color)
+        {
+        case 1:     /// 빨간색
+            newPen = CreatePen(PS_SOLID, 3, RGB(255, 0, 0));
+            break;
+
+        case 2:     /// 파란색
+            newPen = CreatePen(PS_SOLID, 3, RGB(0, 0, 255));
+            break;
+
+        case 3:     /// 녹색
+            newPen = CreatePen(PS_SOLID, 3, RGB(0, 255, 0));
+            break;
+        default:
+            newPen = CreatePen(PS_SOLID, 3, RGB(0, 255, 0));
+            break;
+        }
+
+        osPen = (HPEN)SelectObject(hdc, newPen);
 
         /// 그리기 종류에 따라 그리기
         switch (g_draw_type)
@@ -211,6 +246,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
 
+        SelectObject(hdc, osPen);
+        DeleteObject(newPen);
         ReleaseDC(hWnd, hdc);
     }
         break;
