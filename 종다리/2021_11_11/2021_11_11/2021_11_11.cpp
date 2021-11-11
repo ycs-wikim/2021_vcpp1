@@ -17,6 +17,9 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+// mutex 변수 선언
+HANDLE g_mux;
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -26,6 +29,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 여기에 코드를 입력합니다.
+    g_mux = OpenMutex(MUTEX_ALL_ACCESS, TRUE, L"asdf");
+    if (NULL == g_mux)
+    {
+        MessageBox(NULL, L"외로워요...", L"asdf", MB_OK);
+    }
+    else
+    {
+        MessageBox(NULL, L"아.. 누군가 있군요.", L"asdf", MB_OK);
+        return 0;
+    }
+    g_mux = CreateMutex(NULL, FALSE, L"asdf");
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -122,20 +136,43 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
+#define CRITICALSECTION     0
+#define SEMAPHORE           0
+#define MUTEX               0
+
 HWND g_hWnd;
 int g_x;
+
+#if CRITICALSECTION
 BOOL g_flag;
 CRITICAL_SECTION g_cs;
+#endif
+
+HANDLE g_Mux;
+
+HANDLE g_SEM;
+int g_y;
 
 DWORD WINAPI Pig(LPVOID Param)
 {
     int x = (int) Param;
     HDC hdc;
     int i; // 반복문에 사용
+    int j;
+    int y;
+    WCHAR Buffer[128] = { 0, };
 
-    for (i = 0; i < 200; i++)
+    hdc = GetDC(g_hWnd);
+#if SEMAPHORE
+    WaitForSingleObject(g_SEM, INFINITE);
+#endif
+    g_y += 20;
+    y = g_y;
+    TextOut(hdc, 10, y, L"wait...", 8);
+    GdiFlush();
+    for (i = 0; i < 100; i++)
     {
-        hdc = GetDC(g_hWnd);
+#if CRITICALSECTION
         //while (g_flag == TRUE) // 다른 애가 사용중이라는 뜻.
         //{
         //    // 여기에 만약 sleep 함수를 넣는다면?
@@ -145,15 +182,32 @@ DWORD WINAPI Pig(LPVOID Param)
         //g_flag = TRUE;
         // 임계영역 시작.
         EnterCriticalSection(&g_cs);
+
         g_x = x;
         MoveToEx(hdc, g_x, 0, NULL);
         Sleep(30);
         LineTo(hdc, g_x, i);
         //// 임계영역 종료
+#endif
+        WaitForSingleObject(g_Mux, INFINITE);
+        wsprintfW(Buffer, L"%d%%", i + 1);
+        for (j = 0; j < i; j++)
+        {
+            lstrcatW(Buffer, L"|");
+        }
+        TextOut(hdc, 10, y, Buffer, lstrlenW(Buffer));
+        Sleep(30);
+        ReleaseMutex(g_Mux);
+#if CRITICALSECTION
         //g_flag = FALSE;
         LeaveCriticalSection(&g_cs);
-        ReleaseDC(g_hWnd, hdc);
+#endif
+        
     }
+#if SEMAPHORE
+    ReleaseSemaphore(g_SEM, 1, NULL);
+#endif
+    ReleaseDC(g_hWnd, hdc);
     ExitThread(0);
     return 0;
 }
@@ -165,7 +219,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         {
             g_hWnd = hWnd;
+            g_Mux = CreateMutex(NULL, FALSE, NULL);
+#if CRITICALSECTION
             InitializeCriticalSection(&g_cs);
+#endif
+#if SEMAPHORE
+            g_SEM = CreateSemaphore(NULL, 3, 3, NULL);
+#endif
         }
         break;
     case WM_LBUTTONDOWN:
@@ -200,7 +260,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+        CloseHandle(g_Mux);
+#if CRITICALSECTION
         DeleteCriticalSection(&g_cs);
+#endif
+#if SEMAPHORE
+        CloseHandle(g_SEM);
+#endif
         PostQuitMessage(0);
         break;
     default:
