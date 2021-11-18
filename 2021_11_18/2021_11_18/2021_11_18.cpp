@@ -155,6 +155,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         WCHAR buf[128] = L"C:\\Windows\\System32\\notepad.exe";
         WCHAR me[128] = L"D:\\2021_wikim\\2021_vcpp1\\2021_11_18\\Debug\\2021_11_18.exe";
+        // g_pi.dwProcessId : 생성한 프로세스의 PID 값
+        // g_pi.hProcess : 생성한 프로세스의 핸들
+        // g_pi.dwThreadId : Base Thread ID 값
+        // g_pi.hThread : 생성한 프로세스의 Base Thread 핸들
         CreateProcess(NULL, buf,NULL, NULL,
             FALSE, 0, NULL, NULL, &g_si, &g_pi);
         CreateProcess(NULL, me, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
