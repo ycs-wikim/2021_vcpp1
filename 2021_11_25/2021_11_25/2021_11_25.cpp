@@ -125,29 +125,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-    case WM_LBUTTONDOWN:
+    case WM_RBUTTONDOWN:
+    {
+        HWND note;
+
+        note = FindWindow(L"Notepad", NULL);
+
+        // 강제 종료와 비슷
+        //SendMessage(note, WM_DESTROY, 0, 0);
+        SendMessage(note, WM_CLOSE, 0, 0);
+    }
+        break;
+    case WM_KEYDOWN:
     {
         int x;
         HDC hdc;
-        HWND child;
+        HWND child, edit;
 
         x = LOWORD(lParam);
 
         // 1. 상대방을 찾는다.
-        child = FindWindow(L"CHILD", NULL);
+        child = FindWindow(L"Notepad", NULL);
         if (NULL == child)
         {
             // 못 찾은 경우
-            MessageBox(hWnd, L"Not found", L"HO", MB_OK);
+            MessageBox(hWnd, L"Notepad Not found", L"HO", MB_OK);
             break;
         }
 
+        edit = FindWindowEx(child, NULL, L"Edit", NULL);
+        if (NULL == edit)
+        {
+            // 못 찾은 경우
+            MessageBox(hWnd, L"Edit Not found", L"HO", MB_OK);
+            break;
+        }
+        /*
+        * // 자식 프로세스의 HDC 획득 코드
         hdc = GetDC(child);
 
         MoveToEx(hdc, 10, 10, NULL);
         LineTo(hdc, 100, 100);
 
         ReleaseDC(child, hdc);
+        */
 
         // 찾은 경우
         //MessageBox(hWnd, L"FIND", L"ho~", MB_OK);
@@ -156,6 +177,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //SendMessage(child, WM_LBUTTONDOWN, wParam, x);
         //PostMessage(child, WM_LBUTTONDOWN, wParam, x);
         //PostMessage(child, WM_USER + 1, wParam, lParam);
+        //PostMessage(edit, WM_RBUTTONUP, wParam, lParam);
+        //PostMessage(edit, WM_KEYDOWN, wParam, 0);
+        PostMessage(edit, WM_CHAR, wParam, 0);
     }
         break;
     case WM_COMMAND:
